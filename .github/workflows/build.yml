@@ -1,0 +1,48 @@
+name: Build APK
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Buildozer
+        run: |
+          sudo apt update
+          sudo apt install -y git cmake ninja-build python3-pip python3-venv python3-dev \
+            autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev \
+            libtinfo5 libffi-dev libssl-dev openjdk-17-jdk unzip zip
+          pip3 install --user buildozer cython wheel
+      - name: Download models
+        run: |
+          mkdir -p assets/models
+          # Florence-2
+          wget -q https://huggingface.co/microsoft/Florence-2-base/resolve/main/config.json -P assets/models/florence2
+          wget -q https://huggingface.co/microsoft/Florence-2-base/resolve/main/model.safetensors -P assets/models/florence2
+          wget -q https://huggingface.co/microsoft/Florence-2-base/resolve/main/tokenizer.json -P assets/models/florence2
+          wget -q https://huggingface.co/microsoft/Florence-2-base/resolve/main/tokenizer_config.json -P assets/models/florence2
+          wget -q https://huggingface.co/microsoft/Florence-2-base/resolve/main/special_tokens_map.json -P assets/models/florence2
+          wget -q https://huggingface.co/microsoft/Florence-2-base/resolve/main/preprocessor_config.json -P assets/models/florence2
+          wget -q https://huggingface.co/microsoft/Florence-2-base/resolve/main/generation_config.json -P assets/models/florence2
+          wget -q https://huggingface.co/microsoft/Florence-2-base/resolve/main/configuration_florence2.py -P assets/models/florence2
+          wget -q https://huggingface.co/microsoft/Florence-2-base/resolve/main/processing_florence2.py -P assets/models/florence2
+          wget -q https://huggingface.co/microsoft/Florence-2-base/resolve/main/modeling_florence2.py -P assets/models/florence2
+          # NLLB-200
+          wget -q https://huggingface.co/facebook/nllb-200-distilled-600M/resolve/main/config.json -P assets/models/nllb-200
+          wget -q https://huggingface.co/facebook/nllb-200-distilled-600M/resolve/main/model.safetensors -P assets/models/nllb-200
+          wget -q https://huggingface.co/facebook/nllb-200-distilled-600M/resolve/main/tokenizer.json -P assets/models/nllb-200
+          wget -q https://huggingface.co/facebook/nllb-200-distilled-600M/resolve/main/tokenizer_config.json -P assets/models/nllb-200
+          wget -q https://huggingface.co/facebook/nllb-200-distilled-600M/resolve/main/special_tokens_map.json -P assets/models/nllb-200
+          wget -q https://huggingface.co/facebook/nllb-200-distilled-600M/resolve/main/sentencepiece.bpe.model -P assets/models/nllb-200
+          # Vosk model
+          wget -q https://alphacephei.com/vosk/models/vosk-model-small-ru-0.22.zip -O vosk.zip
+          unzip -q vosk.zip -d assets/models
+          rm vosk.zip
+      - name: Build APK
+        run: |
+          cd apk_project
+          buildozer android debug
+      - name: Upload APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: offline-assistant-apk
+          path: apk_project/bin/*.apk
