@@ -14,32 +14,21 @@ jobs:
             libffi-dev libssl-dev openjdk-17-jdk unzip zip build-essential
           pip3 install --user buildozer cython wheel
 
-      - name: Clean assets path
+      - name: Download models via Hugging Face
         run: |
-          rm -rf assets
-          mkdir -p assets/models
-
-      - name: Download models
-        run: |
+          pip3 install huggingface_hub
+          python3 -c "
+          from huggingface_hub import snapshot_download
+          import os
+          os.makedirs('assets/models', exist_ok=True)
           # Florence-2
-          wget -q https://huggingface.co/microsoft/Florence-2-base/resolve/main/config.json -P assets/models/florence2
-          wget -q https://huggingface.co/microsoft/Florence-2-base/resolve/main/model.safetensors -P assets/models/florence2
-          wget -q https://huggingface.co/microsoft/Florence-2-base/resolve/main/tokenizer.json -P assets/models/florence2
-          wget -q https://huggingface.co/microsoft/Florence-2-base/resolve/main/tokenizer_config.json -P assets/models/florence2
-          wget -q https://huggingface.co/microsoft/Florence-2-base/resolve/main/special_tokens_map.json -P assets/models/florence2
-          wget -q https://huggingface.co/microsoft/Florence-2-base/resolve/main/preprocessor_config.json -P assets/models/florence2
-          wget -q https://huggingface.co/microsoft/Florence-2-base/resolve/main/generation_config.json -P assets/models/florence2
-          wget -q https://huggingface.co/microsoft/Florence-2-base/resolve/main/configuration_florence2.py -P assets/models/florence2
-          wget -q https://huggingface.co/microsoft/Florence-2-base/resolve/main/processing_florence2.py -P assets/models/florence2
-          wget -q https://huggingface.co/microsoft/Florence-2-base/resolve/main/modeling_florence2.py -P assets/models/florence2
+          snapshot_download(repo_id='microsoft/Florence-2-base', local_dir='assets/models/florence2')
           # NLLB-200
-          wget -q https://huggingface.co/facebook/nllb-200-distilled-600M/resolve/main/config.json -P assets/models/nllb-200
-          wget -q https://huggingface.co/facebook/nllb-200-distilled-600M/resolve/main/model.safetensors -P assets/models/nllb-200
-          wget -q https://huggingface.co/facebook/nllb-200-distilled-600M/resolve/main/tokenizer.json -P assets/models/nllb-200
-          wget -q https://huggingface.co/facebook/nllb-200-distilled-600M/resolve/main/tokenizer_config.json -P assets/models/nllb-200
-          wget -q https://huggingface.co/facebook/nllb-200-distilled-600M/resolve/main/special_tokens_map.json -P assets/models/nllb-200
-          wget -q https://huggingface.co/facebook/nllb-200-distilled-600M/resolve/main/sentencepiece.bpe.model -P assets/models/nllb-200
-          # Vosk model
+          snapshot_download(repo_id='facebook/nllb-200-distilled-600M', local_dir='assets/models/nllb-200')
+          "
+
+      - name: Download Vosk model
+        run: |
           wget -q https://alphacephei.com/vosk/models/vosk-model-small-ru-0.22.zip -O vosk.zip
           unzip -q vosk.zip -d assets/models
           rm vosk.zip
