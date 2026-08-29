@@ -14,23 +14,24 @@ jobs:
             libffi-dev libssl-dev openjdk-17-jdk unzip zip build-essential
           pip3 install --user buildozer cython wheel
 
+      - name: Pre-download freetype to cache
+        run: |
+          mkdir -p $HOME/.buildozer/android/platform/build-arm64-v8a/packages/freetype
+          wget -q https://download.savannah.gnu.org/releases/freetype/freetype-2.14.1.tar.gz -O $HOME/.buildozer/android/platform/build-arm64-v8a/packages/freetype/freetype-2.14.1.tar.gz
+
       - name: Setup Android SDK and NDK
         run: |
           mkdir -p $HOME/.buildozer/android/platform
           cd $HOME/.buildozer/android/platform
-          # SDK
           if [ ! -d "android-sdk" ]; then
             mkdir android-sdk
             cd android-sdk
             wget -q https://dl.google.com/android/repository/commandlinetools-linux-6514223_latest.zip
             unzip -q commandlinetools-linux-6514223_latest.zip
             rm commandlinetools-linux-6514223_latest.zip
-            # Принимаем лицензии
             yes | tools/bin/sdkmanager --sdk_root=$HOME/.buildozer/android/platform/android-sdk --licenses
-            # Устанавливаем нужные пакеты
             tools/bin/sdkmanager --sdk_root=$HOME/.buildozer/android/platform/android-sdk "platform-tools" "build-tools;34.0.0" "platforms;android-34"
           fi
-          # NDK r25b
           if [ ! -d "android-ndk-r25b" ]; then
             wget -q https://dl.google.com/android/repository/android-ndk-r25b-linux.zip
             unzip -q android-ndk-r25b-linux.zip
