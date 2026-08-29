@@ -14,11 +14,6 @@ jobs:
             libffi-dev libssl-dev openjdk-17-jdk unzip zip build-essential
           pip3 install --user buildozer cython wheel
 
-      - name: Pre-download freetype to cache
-        run: |
-          mkdir -p $HOME/.buildozer/android/platform/build-arm64-v8a/packages/freetype
-          wget -q https://download.savannah.gnu.org/releases/freetype/freetype-2.14.1.tar.gz -O $HOME/.buildozer/android/platform/build-arm64-v8a/packages/freetype/freetype-2.14.1.tar.gz
-
       - name: Setup Android SDK and NDK
         run: |
           mkdir -p $HOME/.buildozer/android/platform
