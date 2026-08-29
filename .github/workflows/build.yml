@@ -9,8 +9,8 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y git cmake ninja-build python3-pip python3-venv python3-dev \
-            autoconf libtool pkg-config zlib1g-dev libncurses-dev libncursesw6-dev \
-            libtinfo6 libffi-dev libssl-dev openjdk-17-jdk unzip zip build-essential
+            autoconf libtool pkg-config zlib1g-dev libncurses-dev libtinfo6 \
+            libffi-dev libssl-dev openjdk-17-jdk unzip zip build-essential
           pip3 install --user buildozer cython wheel
       - name: Download models
         run: |
