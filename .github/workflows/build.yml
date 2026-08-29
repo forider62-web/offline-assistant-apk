@@ -5,6 +5,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
+
       - name: Setup Buildozer
         run: |
           sudo apt update
@@ -12,9 +13,15 @@ jobs:
             autoconf libtool pkg-config zlib1g-dev libncurses-dev libtinfo6 \
             libffi-dev libssl-dev openjdk-17-jdk unzip zip build-essential
           pip3 install --user buildozer cython wheel
+
+      - name: Debug current directory
+        run: |
+          pwd
+          ls -la
+
       - name: Download models
         run: |
-          mkdir -p assets/models
+          mkdir -p ./assets/models
           # Florence-2
           wget -q https://huggingface.co/microsoft/Florence-2-base/resolve/main/config.json -P assets/models/florence2
           wget -q https://huggingface.co/microsoft/Florence-2-base/resolve/main/model.safetensors -P assets/models/florence2
@@ -37,12 +44,13 @@ jobs:
           wget -q https://alphacephei.com/vosk/models/vosk-model-small-ru-0.22.zip -O vosk.zip
           unzip -q vosk.zip -d assets/models
           rm vosk.zip
+
       - name: Build APK
         run: |
-          cd apk_project
           buildozer android debug
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: offline-assistant-apk
-          path: apk_project/bin/*.apk
+          path: bin/*.apk
