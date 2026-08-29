@@ -14,6 +14,29 @@ jobs:
             libffi-dev libssl-dev openjdk-17-jdk unzip zip build-essential
           pip3 install --user buildozer cython wheel
 
+      - name: Setup Android SDK and NDK
+        run: |
+          mkdir -p $HOME/.buildozer/android/platform
+          cd $HOME/.buildozer/android/platform
+          # SDK
+          if [ ! -d "android-sdk" ]; then
+            mkdir android-sdk
+            cd android-sdk
+            wget -q https://dl.google.com/android/repository/commandlinetools-linux-6514223_latest.zip
+            unzip -q commandlinetools-linux-6514223_latest.zip
+            rm commandlinetools-linux-6514223_latest.zip
+            # Принимаем лицензии
+            yes | tools/bin/sdkmanager --sdk_root=$HOME/.buildozer/android/platform/android-sdk --licenses
+            # Устанавливаем нужные пакеты
+            tools/bin/sdkmanager --sdk_root=$HOME/.buildozer/android/platform/android-sdk "platform-tools" "build-tools;34.0.0" "platforms;android-34"
+          fi
+          # NDK r25b
+          if [ ! -d "android-ndk-r25b" ]; then
+            wget -q https://dl.google.com/android/repository/android-ndk-r25b-linux.zip
+            unzip -q android-ndk-r25b-linux.zip
+            rm android-ndk-r25b-linux.zip
+          fi
+
       - name: Download models via Hugging Face
         run: |
           pip3 install huggingface_hub
@@ -21,9 +44,7 @@ jobs:
           from huggingface_hub import snapshot_download
           import os
           os.makedirs('assets/models', exist_ok=True)
-          # Florence-2
           snapshot_download(repo_id='microsoft/Florence-2-base', local_dir='assets/models/florence2')
-          # NLLB-200
           snapshot_download(repo_id='facebook/nllb-200-distilled-600M', local_dir='assets/models/nllb-200')
           "
 
@@ -35,6 +56,8 @@ jobs:
 
       - name: Build APK
         run: |
+          export ANDROID_SDK_ROOT=$HOME/.buildozer/android/platform/android-sdk
+          export ANDROID_NDK_HOME=$HOME/.buildozer/android/platform/android-ndk-r25b
           buildozer android debug
 
       - name: Upload APK
