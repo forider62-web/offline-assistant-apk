@@ -11,8 +11,14 @@ jobs:
           sudo apt update
           sudo apt install -y git cmake ninja-build python3-pip python3-venv python3-dev \
             autoconf libtool pkg-config zlib1g-dev libncurses-dev libtinfo6 \
-            libffi-dev libssl-dev openjdk-17-jdk unzip zip build-essential
+            libffi-dev libssl-dev openjdk-17-jdk unzip zip build-essential curl
           pip3 install --user buildozer cython wheel
+
+      - name: Pre-download freetype from GitHub mirror
+        run: |
+          mkdir -p .buildozer/android/platform/build-arm64-v8a/packages/freetype
+          curl -L --retry 5 --retry-delay 2 -o .buildozer/android/platform/build-arm64-v8a/packages/freetype/freetype-2.14.1.tar.gz \
+            https://github.com/freetype/freetype/archive/refs/tags/VER-2-14-1.tar.gz
 
       - name: Setup Android SDK and NDK
         run: |
