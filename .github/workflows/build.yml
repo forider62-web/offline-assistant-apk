@@ -14,14 +14,13 @@ jobs:
             libffi-dev libssl-dev openjdk-17-jdk unzip zip build-essential
           pip3 install --user buildozer cython wheel
 
-      - name: Debug current directory
+      - name: Clean assets path
         run: |
-          pwd
-          ls -la
+          rm -rf assets
+          mkdir -p assets/models
 
       - name: Download models
         run: |
-          mkdir -p ./assets/models
           # Florence-2
           wget -q https://huggingface.co/microsoft/Florence-2-base/resolve/main/config.json -P assets/models/florence2
           wget -q https://huggingface.co/microsoft/Florence-2-base/resolve/main/model.safetensors -P assets/models/florence2
