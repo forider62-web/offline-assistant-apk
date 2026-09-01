@@ -14,12 +14,6 @@ jobs:
             libffi-dev libssl-dev openjdk-17-jdk unzip zip build-essential curl
           pip3 install --user buildozer cython wheel
 
-      - name: Pre-download freetype from GitHub mirror
-        run: |
-          mkdir -p .buildozer/android/platform/build-arm64-v8a/packages/freetype
-          curl -L --retry 5 --retry-delay 2 -o .buildozer/android/platform/build-arm64-v8a/packages/freetype/freetype-2.14.1.tar.gz \
-            https://github.com/freetype/freetype/archive/refs/tags/VER-2-14-1.tar.gz
-
       - name: Setup Android SDK and NDK
         run: |
           mkdir -p $HOME/.buildozer/android/platform
@@ -55,6 +49,22 @@ jobs:
           wget -q https://alphacephei.com/vosk/models/vosk-model-small-ru-0.22.zip -O vosk.zip
           unzip -q vosk.zip -d assets/models
           rm vosk.zip
+
+      - name: Patch libthorvg recipe
+        run: |
+          python3 -c "
+          import pathlib
+          p = pathlib.Path.home() / '.buildozer/android/platform/python-for-android/pythonforandroid/recipes/libthorvg/__init__.py'
+          s = p.read_text()
+          old = 'clang_lib_dir = glob(pattern)[0]'
+          new = '''try:
+                  clang_lib_dir = glob(pattern)[0]
+              except IndexError:
+                  clang_lib_dir = \"\"'''
+          s = s.replace(old, new)
+          p.write_text(s)
+          print('libthorvg patched')
+          "
 
       - name: Build APK
         run: |
