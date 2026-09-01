@@ -14,3 +14,4 @@ android.sdk = 34
 android.archs = arm64-v8a
 android.bootstrap = webview
 p4a.branch = develop
+p4a.local_recipes = ./p4a-recipes
