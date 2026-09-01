@@ -33,6 +33,11 @@ jobs:
             rm android-ndk-r25b-linux.zip
           fi
 
+      - name: Clean python-for-android cache
+        run: |
+          rm -rf $HOME/.buildozer/android/platform/python-for-android
+          rm -rf $HOME/.buildozer/android/platform/build-arm64-v8a
+
       - name: Clone python-for-android and patch vosk recipe
         run: |
           mkdir -p $HOME/.buildozer/android/platform

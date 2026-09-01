@@ -13,5 +13,6 @@ android.ndk = 25b
 android.sdk = 34
 android.archs = arm64-v8a
 android.bootstrap = webview
+android.blacklist_requirements = srt
 p4a.branch = develop
 p4a.local_recipes = ./p4a-recipes
