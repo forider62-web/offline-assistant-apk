@@ -6,7 +6,6 @@ from transformers import (
     AutoProcessor, AutoModelForCausalLM,
     AutoTokenizer, AutoModelForSeq2SeqLM
 )
-import vosk
 from threading import Event
 
 # ---------- НАСТРОЙКИ ----------
@@ -15,7 +14,6 @@ CAMERA_ID = 0
 MODEL_DIR = os.path.join(os.path.dirname(__file__), "assets", "models", "florence2")
 RU_EN_DIR = os.path.join(os.path.dirname(__file__), "assets", "models", "opus-mt-ru-en")
 EN_RU_DIR = os.path.join(os.path.dirname(__file__), "assets", "models", "opus-mt-en-ru")
-VOSK_MODEL_PATH = os.path.join(os.path.dirname(__file__), "assets", "models", "vosk-model-small-ru-0.22")
 
 # ---------- Android классы ----------
 PythonActivity = autoclass('org.kivy.android.PythonActivity')
@@ -28,6 +26,10 @@ TextToSpeech = autoclass('android.speech.tts.TextToSpeech')
 FileOutputStream = autoclass('java.io.FileOutputStream')
 File = autoclass('java.io.File')
 Environment = autoclass('android.os.Environment')
+SpeechRecognizer = autoclass('android.speech.SpeechRecognizer')
+RecognizerIntent = autoclass('android.content.Intent')
+Bundle = autoclass('android.os.Bundle')
+ArrayList = autoclass('java.util.ArrayList')
 
 # ---------- Глобальные переменные ----------
 florence_processor = None
@@ -36,8 +38,10 @@ ru_en_tokenizer = None
 ru_en_model = None
 en_ru_tokenizer = None
 en_ru_model = None
-vosk_recognizer = None
 tts = None
+speech_recognizer = None
+recognition_result = None
+recognition_event = Event()
 
 # ---------- TTS ----------
 def init_tts():
@@ -49,45 +53,76 @@ def speak(text):
         init_tts()
     tts.speak(text, TextToSpeech.QUEUE_FLUSH, None)
 
-# ---------- Vosk ----------
-def init_vosk():
-    global vosk_recognizer
-    vosk_model = vosk.Model(VOSK_MODEL_PATH)
-    vosk_recognizer = vosk.KaldiRecognizer(vosk_model, 16000)
+# ---------- Speech Recognizer ----------
+class RecognitionListener(PythonJavaClass):
+    __javainterfaces__ = ['android/speech/RecognitionListener']
+    __javacontext__ = 'app'
 
-def record_audio(duration=3):
-    sample_rate = 16000
-    channel_config = AudioFormat.CHANNEL_IN_MONO
-    audio_format = AudioFormat.ENCODING_PCM_16BIT
-    buffer_size = AudioRecord.getMinBufferSize(sample_rate, channel_config, audio_format)
+    @java_method('(I)V')
+    def onReadyForSpeech(self, params):
+        pass
 
-    recorder = AudioRecord(
-        MediaRecorder.AudioSource.MIC,
-        sample_rate,
-        channel_config,
-        audio_format,
-        buffer_size
-    )
-    recorder.startRecording()
-    data = bytearray()
-    num_samples = int(sample_rate * duration)
-    chunk = buffer_size // 2
-    for _ in range(0, num_samples, chunk):
-        buf = bytearray(chunk)
-        read = recorder.read(buf, 0, chunk)
-        if read > 0:
-            data.extend(buf[:read])
-    recorder.stop()
-    recorder.release()
-    return bytes(data)
+    @java_method('(I)V')
+    def onBeginningOfSpeech(self):
+        pass
+
+    @java_method('(F)V')
+    def onRmsChanged(self, rmsdB):
+        pass
+
+    @java_method('([B)V')
+    def onBufferReceived(self, buffer):
+        pass
+
+    @java_method('(I)V')
+    def onEndOfSpeech(self):
+        pass
+
+    @java_method('(I)V')
+    def onError(self, error):
+        global recognition_result
+        recognition_result = None
+        recognition_event.set()
+
+    @java_method('(Landroid/os/Bundle;)V')
+    def onResults(self, results):
+        global recognition_result
+        matches = results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
+        if matches and len(matches) > 0:
+            recognition_result = matches[0]
+        else:
+            recognition_result = None
+        recognition_event.set()
+
+    @java_method('(Landroid/os/Bundle;)V')
+    def onPartialResults(self, partialResults):
+        pass
+
+    @java_method('(I)V')
+    def onEvent(self, eventType, params):
+        pass
+
+def init_speech_recognizer():
+    global speech_recognizer, recognition_listener
+    recognition_listener = RecognitionListener()
+    speech_recognizer = SpeechRecognizer.createSpeechRecognizer(activity)
+    speech_recognizer.setRecognitionListener(recognition_listener)
 
 def listen():
-    raw = record_audio(3)
-    if vosk_recognizer.AcceptWaveform(raw):
-        result = json.loads(vosk_recognizer.Result())
-        text = result.get("text", "").strip().lower()
-        return text if text else None
-    return None
+    global recognition_result, recognition_event
+    recognition_result = None
+    recognition_event.clear()
+
+    intent = RecognizerIntent()
+    intent.setAction(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+    intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+    intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ru-RU")
+    intent.putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 1)
+
+    speech_recognizer.startListening(intent)
+    recognition_event.wait(timeout=10)
+    speech_recognizer.stopListening()
+    return recognition_result
 
 # ---------- Камера ----------
 class PictureCallback(PythonJavaClass):
@@ -179,12 +214,12 @@ def answer_question(image, question_en):
 # ---------- Главный цикл ----------
 def main():
     init_tts()
-    init_vosk()
+    init_speech_recognizer()
     load_models()
     speak("Ассистент запущен")
     while True:
         text = listen()
-        if text and WAKE_WORD in text:
+        if text and WAKE_WORD in text.lower():
             speak("Слушаю")
             question = listen()
             if question:
