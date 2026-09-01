@@ -50,21 +50,27 @@ jobs:
           unzip -q vosk.zip -d assets/models
           rm vosk.zip
 
-      - name: Patch libthorvg recipe
+      - name: Clone python-for-android and patch libthorvg
         run: |
-          python3 -c "
+          mkdir -p $HOME/.buildozer/android/platform
+          cd $HOME/.buildozer/android/platform
+          if [ ! -d "python-for-android" ]; then
+            git clone -b develop --single-branch https://github.com/kivy/python-for-android.git
+          fi
+          cd python-for-android
+          python3 - <<'EOF'
           import pathlib
-          p = pathlib.Path.home() / '.buildozer/android/platform/python-for-android/pythonforandroid/recipes/libthorvg/__init__.py'
+          p = pathlib.Path('pythonforandroid/recipes/libthorvg/__init__.py')
           s = p.read_text()
           old = 'clang_lib_dir = glob(pattern)[0]'
           new = '''try:
                   clang_lib_dir = glob(pattern)[0]
               except IndexError:
-                  clang_lib_dir = \"\"'''
+                  clang_lib_dir = ""'''
           s = s.replace(old, new)
           p.write_text(s)
           print('libthorvg patched')
-          "
+          EOF
 
       - name: Build APK
         run: |
