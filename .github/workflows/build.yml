@@ -41,7 +41,8 @@ jobs:
           import os
           os.makedirs('assets/models', exist_ok=True)
           snapshot_download(repo_id='microsoft/Florence-2-base', local_dir='assets/models/florence2')
-          snapshot_download(repo_id='facebook/nllb-200-distilled-600M', local_dir='assets/models/nllb-200')
+          snapshot_download(repo_id='Helsinki-NLP/opus-mt-ru-en', local_dir='assets/models/opus-mt-ru-en')
+          snapshot_download(repo_id='Helsinki-NLP/opus-mt-en-ru', local_dir='assets/models/opus-mt-en-ru')
           "
 
       - name: Download Vosk model

@@ -11,9 +11,10 @@ from threading import Event
 
 # ---------- НАСТРОЙКИ ----------
 WAKE_WORD = "слушай"
-CAMERA_ID = 0  # 0 – задняя камера, 1 – фронтальная
+CAMERA_ID = 0
 MODEL_DIR = os.path.join(os.path.dirname(__file__), "assets", "models", "florence2")
-TRANSLATE_MODEL = os.path.join(os.path.dirname(__file__), "assets", "models", "nllb-200")
+RU_EN_DIR = os.path.join(os.path.dirname(__file__), "assets", "models", "opus-mt-ru-en")
+EN_RU_DIR = os.path.join(os.path.dirname(__file__), "assets", "models", "opus-mt-en-ru")
 VOSK_MODEL_PATH = os.path.join(os.path.dirname(__file__), "assets", "models", "vosk-model-small-ru-0.22")
 
 # ---------- Android классы ----------
@@ -31,9 +32,10 @@ Environment = autoclass('android.os.Environment')
 # ---------- Глобальные переменные ----------
 florence_processor = None
 florence_model = None
-translator_tokenizer_ru_en = None
-translator_model = None
-translator_tokenizer_en_ru = None
+ru_en_tokenizer = None
+ru_en_model = None
+en_ru_tokenizer = None
+en_ru_model = None
 vosk_recognizer = None
 tts = None
 
@@ -146,27 +148,27 @@ def take_photo():
 # ---------- Загрузка моделей ----------
 def load_models():
     global florence_processor, florence_model
-    global translator_tokenizer_ru_en, translator_model, translator_tokenizer_en_ru
+    global ru_en_tokenizer, ru_en_model, en_ru_tokenizer, en_ru_model
 
     florence_processor = AutoProcessor.from_pretrained(MODEL_DIR, trust_remote_code=True)
     florence_model = AutoModelForCausalLM.from_pretrained(
         MODEL_DIR, trust_remote_code=True, torch_dtype=torch.float32, low_cpu_mem_usage=True)
 
-    translator_tokenizer_ru_en = AutoTokenizer.from_pretrained(
-        TRANSLATE_MODEL, src_lang="rus_Cyrl", tgt_lang="eng_Latn")
-    translator_model = AutoModelForSeq2SeqLM.from_pretrained(TRANSLATE_MODEL)
-    translator_tokenizer_en_ru = AutoTokenizer.from_pretrained(
-        TRANSLATE_MODEL, src_lang="eng_Latn", tgt_lang="rus_Cyrl")
+    ru_en_tokenizer = AutoTokenizer.from_pretrained(RU_EN_DIR)
+    ru_en_model = AutoModelForSeq2SeqLM.from_pretrained(RU_EN_DIR)
+
+    en_ru_tokenizer = AutoTokenizer.from_pretrained(EN_RU_DIR)
+    en_ru_model = AutoModelForSeq2SeqLM.from_pretrained(EN_RU_DIR)
 
 def translate_ru2en(text):
-    inputs = translator_tokenizer_ru_en(text, return_tensors="pt", padding=True)
-    out = translator_model.generate(**inputs, max_length=200)
-    return translator_tokenizer_ru_en.decode(out[0], skip_special_tokens=True)
+    inputs = ru_en_tokenizer(text, return_tensors="pt", padding=True, truncation=True)
+    out = ru_en_model.generate(**inputs, max_length=200)
+    return ru_en_tokenizer.decode(out[0], skip_special_tokens=True)
 
 def translate_en2ru(text):
-    inputs = translator_tokenizer_en_ru(text, return_tensors="pt", padding=True)
-    out = translator_model.generate(**inputs, max_length=200)
-    return translator_tokenizer_en_ru.decode(out[0], skip_special_tokens=True)
+    inputs = en_ru_tokenizer(text, return_tensors="pt", padding=True, truncation=True)
+    out = en_ru_model.generate(**inputs, max_length=200)
+    return en_ru_tokenizer.decode(out[0], skip_special_tokens=True)
 
 def answer_question(image, question_en):
     inputs = florence_processor(text=question_en, images=image, return_tensors="pt")
@@ -180,9 +182,7 @@ def main():
     init_vosk()
     load_models()
     speak("Ассистент запущен")
-
     while True:
-        print("Waiting for wake word...")
         text = listen()
         if text and WAKE_WORD in text:
             speak("Слушаю")
