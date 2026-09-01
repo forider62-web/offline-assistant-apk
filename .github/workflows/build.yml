@@ -33,6 +33,23 @@ jobs:
             rm android-ndk-r25b-linux.zip
           fi
 
+      - name: Clone python-for-android and patch vosk recipe
+        run: |
+          mkdir -p $HOME/.buildozer/android/platform
+          cd $HOME/.buildozer/android/platform
+          if [ ! -d "python-for-android" ]; then
+            git clone -b develop --single-branch https://github.com/kivy/python-for-android.git
+          fi
+          cd python-for-android
+          python3 - <<'EOF'
+          import pathlib
+          p = pathlib.Path('pythonforandroid/recipes/vosk/__init__.py')
+          s = p.read_text()
+          s = s.replace("'srt',", "")
+          p.write_text(s)
+          print('vosk recipe patched')
+          EOF
+
       - name: Download models via Hugging Face
         run: |
           pip3 install huggingface_hub
