@@ -5,6 +5,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
+
       - name: Setup Buildozer
         run: |
           sudo apt update
@@ -12,6 +13,7 @@ jobs:
             autoconf libtool pkg-config zlib1g-dev libncurses-dev libtinfo6 \
             libffi-dev libssl-dev openjdk-17-jdk unzip zip build-essential curl
           pip3 install --user buildozer cython wheel
+
       - name: Setup Android SDK and NDK
         run: |
           mkdir -p $HOME/.buildozer/android/platform
@@ -30,6 +32,7 @@ jobs:
             unzip -q android-ndk-r25b-linux.zip
             rm android-ndk-r25b-linux.zip
           fi
+
       - name: Download models via Hugging Face
         run: |
           pip3 install huggingface_hub
@@ -40,16 +43,19 @@ jobs:
           snapshot_download(repo_id='microsoft/Florence-2-base', local_dir='assets/models/florence2')
           snapshot_download(repo_id='facebook/nllb-200-distilled-600M', local_dir='assets/models/nllb-200')
           "
+
       - name: Download Vosk model
         run: |
           wget -q https://alphacephei.com/vosk/models/vosk-model-small-ru-0.22.zip -O vosk.zip
           unzip -q vosk.zip -d assets/models
           rm vosk.zip
+
       - name: Build APK
         run: |
           export ANDROID_SDK_ROOT=$HOME/.buildozer/android/platform/android-sdk
           export ANDROID_NDK_HOME=$HOME/.buildozer/android/platform/android-ndk-r25b
           buildozer android debug
+
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
